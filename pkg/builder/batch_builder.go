@@ -252,9 +252,9 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	return job, nil
 }
 
-func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
-	mariadbInitJob *mariadbv1alpha1.Job) (*batchv1.Job, error) {
-	initJob := ptr.Deref(mariadbInitJob, mariadbv1alpha1.Job{})
+func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
+	mariadbInitJob *mariadbv1alpha1.GaleraInitJob) (*batchv1.Job, error) {
+	initJob := ptr.Deref(mariadbInitJob, mariadbv1alpha1.GaleraInitJob{})
 	extraMeta := ptr.Deref(initJob.Metadata, mariadbv1alpha1.Metadata{})
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
@@ -264,6 +264,11 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 	command := command.NewBashCommand([]string{
 		filepath.Join(InitConfigPath, InitEntrypointKey),
 	})
+
+	statusContainer, err := b.galeraStatusContainer(mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error creating status container: %v", err)
+	}
 
 	podTpl, err := b.mariadbPodTemplate(
 		mariadb,
@@ -300,6 +305,9 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 				Name:      InitVolume,
 				MountPath: InitConfigPath,
 			},
+		}),
+		withExtraInitContainers([]corev1.Container{
+			*statusContainer,
 		}),
 		withGaleraContainers(false),
 		withGaleraConfig(false),

@@ -350,8 +350,33 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) {
 	}
 
 	if g.InitJob != nil {
-		g.InitJob.SetDefaults(mdb.ObjectMeta)
+		g.InitJob.SetDefaults(mdb.ObjectMeta, env)
 	}
+}
+
+// GaleraInitJob defines the Galera initialization Job.
+type GaleraInitJob struct {
+	// Job defines a template to configure a Job object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Job `json:",inline"`
+	// Image name to be used by the Galera init job. The supported format is `<image>:<tag>`.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Image string `json:"image"`
+	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+	// +optional
+	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (g *GaleraInitJob) SetDefaults(mariadbObjMeta metav1.ObjectMeta, env *environment.OperatorEnv) {
+	if g.Image == "" {
+		g.Image = env.MariadbOperatorImage
+	}
+	g.Job.SetDefaults(mariadbObjMeta)
 }
 
 // GaleraSpec is the Galera desired state specification.
@@ -401,7 +426,7 @@ type GaleraSpec struct {
 	// InitJob defines additional properties for the Job used to perform the initialization.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	InitJob *Job `json:"initJob,omitempty"`
+	InitJob *GaleraInitJob `json:"initJob,omitempty"`
 	// GaleraConfig defines storage options for the Galera configuration files.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

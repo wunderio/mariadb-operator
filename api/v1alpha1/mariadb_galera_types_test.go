@@ -254,9 +254,11 @@ var _ = Describe("MariaDB Galera types", func() {
 						Recovery: &GaleraRecovery{
 							Enabled: false,
 						},
-						InitJob: &Job{
-							Affinity: &AffinityConfig{
-								AntiAffinityEnabled: ptr.To(true),
+						InitJob: &GaleraInitJob{
+							Job: Job{
+								Affinity: &AffinityConfig{
+									AntiAffinityEnabled: ptr.To(true),
+								},
 							},
 						},
 					},
@@ -303,25 +305,27 @@ var _ = Describe("MariaDB Galera types", func() {
 						Recovery: &GaleraRecovery{
 							Enabled: false,
 						},
-						InitJob: &Job{
-							Affinity: &AffinityConfig{
-								AntiAffinityEnabled: ptr.To(true),
-								Affinity: corev1.Affinity{
-									PodAntiAffinity: &corev1.PodAntiAffinity{
-										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-											{
-												LabelSelector: &metav1.LabelSelector{
-													MatchExpressions: []metav1.LabelSelectorRequirement{
-														{
-															Key:      "app.kubernetes.io/instance",
-															Operator: metav1.LabelSelectorOpIn,
-															Values: []string{
-																mdbObjMeta.Name,
+						InitJob: &GaleraInitJob{
+							Job: Job{
+								Affinity: &AffinityConfig{
+									AntiAffinityEnabled: ptr.To(true),
+									Affinity: corev1.Affinity{
+										PodAntiAffinity: &corev1.PodAntiAffinity{
+											RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+												{
+													LabelSelector: &metav1.LabelSelector{
+														MatchExpressions: []metav1.LabelSelectorRequirement{
+															{
+																Key:      "app.kubernetes.io/instance",
+																Operator: metav1.LabelSelectorOpIn,
+																Values: []string{
+																	mdbObjMeta.Name,
+																},
 															},
 														},
 													},
+													TopologyKey: "kubernetes.io/hostname",
 												},
-												TopologyKey: "kubernetes.io/hostname",
 											},
 										},
 									},

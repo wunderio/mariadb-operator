@@ -128,6 +128,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcileSuspend,
 		},
 		{
+			Name:      "Downscale",
+			Reconcile: r.reconcileDownscaled,
+		},
+		{
 			Name:      "Secret",
 			Reconcile: r.reconcileSecret,
 		},
@@ -575,7 +579,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 }
 
 func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.Status.CurrentPrimaryPodIndex == nil && !mariadb.IsStopped() {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil && !mariadb.IsDownscaled() {
 		log.FromContext(ctx).V(1).Info("'status.currentPrimaryPodIndex' must be set")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
@@ -638,7 +642,10 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 }
 
 func (r *MariaDBReconciler) reconcileSQL(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.IsReady() && !mariadb.IsStopped() {
+	if mariadb.IsDownscaled() {
+		return ctrl.Result{}, nil
+	}
+	if !mariadb.IsReady() {
 		log.FromContext(ctx).V(1).Info("MariaDB not ready. Requeuing SQL resources")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
@@ -793,9 +800,16 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 }
 
 func (r *MariaDBReconciler) reconcileSuspend(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.IsSuspended() && !mariadb.IsStopped() {
+	if mariadb.IsSuspended() {
 		log.FromContext(ctx).V(1).Info("MariaDB is suspended. Skipping...")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) reconcileDownscaled(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mariadb.IsDownscaled() {
+		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{}, nil
 }
@@ -804,7 +818,7 @@ func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *ma
 	if !mariadb.IsInitialUserEnabled() {
 		return ctrl.Result{}, nil
 	}
-	if !mariadb.IsReady() && !mariadb.IsStopped() {
+	if !mariadb.IsReady() {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	if mariadb.IsHAEnabled() {

@@ -104,7 +104,7 @@ func (r *MariaDB) validateHA() error {
 			"Multiple replicas can only be specified when 'spec.replication' or 'spec.galera' are configured",
 		)
 	}
-	if r.IsHAEnabled() && r.Spec.Replicas <= 1 && !r.IsStopped() {
+	if r.IsHAEnabled() && r.Spec.Replicas <= 1 && !r.IsDownscaled() && !r.IsDownscaling() {
 		return field.Invalid(
 			field.NewPath("spec").Child("replicas"),
 			r.Spec.Replicas,
@@ -127,7 +127,7 @@ func (r *MariaDB) validateMaxScale() error {
 
 func (r *MariaDB) validateGalera() error {
 	galera := ptr.Deref(r.Spec.Galera, Galera{})
-	if !galera.Enabled || r.IsStopped() {
+	if !galera.Enabled || r.IsDownscaled() || r.IsDownscaling() {
 		return nil
 	}
 	if galera.Primary.PodIndex != nil {

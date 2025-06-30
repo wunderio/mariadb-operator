@@ -54,17 +54,6 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Keep MariaDB Spec replicas in sync with StatefulSet replicas
-	if mariadb.Spec.Replicas != *sts.Spec.Replicas {
-		logger := log.FromContext(ctx).WithName("galera").WithName("replicas")
-		logger.Info("Updating MariaDB Spec replicas to match StatefulSet replicas", "spec-replicas", mariadb.Spec.Replicas, "sts-replicas", *sts.Spec.Replicas)
-		if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
-			mdb.Spec.Replicas = *sts.Spec.Replicas
-		}); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error patching MariaDB: %v", err)
-		}
-	}
-
 	if !shouldPerformClusterRecovery(mariadb) {
 		return r.monitorResult(mariadb), nil
 	}
@@ -225,7 +214,7 @@ func shouldPerformClusterRecovery(mdb *mariadbv1alpha1.MariaDB) bool {
 	if !galera.Enabled || !recovery.Enabled {
 		return false
 	}
-	if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || !mdb.HasGaleraConfiguredCondition() || mdb.HasGaleraNotReadyCondition() || mdb.IsStopped() {
+	if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || !mdb.HasGaleraConfiguredCondition() || mdb.HasGaleraNotReadyCondition() || mdb.IsDownscaled() {
 		return false
 	}
 	return true

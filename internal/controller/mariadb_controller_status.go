@@ -31,9 +31,9 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		})
 	}
 
-	if mdb.IsStopped() {
+	if mdb.IsDownscaled() {
 		return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-			condition.SetReadyStopped(status)
+			condition.SetReadyDownscaled(status)
 			return nil
 		})
 	}

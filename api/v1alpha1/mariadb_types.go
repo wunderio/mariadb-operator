@@ -703,9 +703,27 @@ func (m *MariaDB) IsUpdating() bool {
 	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonUpdating
 }
 
-// IsStopped whether a MariaDB is stopped.
-func (m *MariaDB) IsStopped() bool {
+// IsDownscaled whether a MariaDB is scaled to 0.
+func (m *MariaDB) IsDownscaled() bool {
 	return m.Spec.Replicas == 0
+	// is in the process of being downscaled
+	if m.Spec.Replicas == 0 && m.Status.Replicas > 0 {
+		return false
+	}
+	// is downscaled
+	if m.Spec.Replicas == 0 && m.Status.Replicas == 0 {
+		return true
+	}
+	return false
+}
+
+// IsDownscaled whether a MariaDB is scaled to 0.
+func (m *MariaDB) IsDownscaling() bool {
+	// is in the process of being downscaled
+	if m.Spec.Replicas == 0 && m.Status.Replicas > 0 {
+		return true
+	}
+	return false
 }
 
 // IsSuspended whether a MariaDB is suspended.

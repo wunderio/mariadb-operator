@@ -178,13 +178,16 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 			WithLabels(meta.Labels).
 			WithPVCRole(StorageVolumeRole).
 			Build()
-
+		annotations := meta.Annotations
+		if mariadb.Spec.InheritMetadata != nil {
+			annotations = mariadb.Spec.InheritMetadata.Annotations
+		}
 		pvcs = []corev1.PersistentVolumeClaim{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        StorageVolume,
 					Labels:      labels,
-					Annotations: meta.Annotations,
+					Annotations: annotations,
 				},
 				Spec: vctpl.PersistentVolumeClaimSpec,
 			},
@@ -201,12 +204,15 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 			WithLabels(meta.Labels).
 			WithPVCRole(ConfigVolumeRole).
 			Build()
-
+		annotations := meta.Annotations
+		if mariadb.Spec.InheritMetadata != nil {
+			annotations = mariadb.Spec.InheritMetadata.Annotations
+		}
 		pvcs = append(pvcs, corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        galeraresources.GaleraConfigVolume,
 				Labels:      labels,
-				Annotations: meta.Annotations,
+				Annotations: annotations,
 			},
 			Spec: vctpl.PersistentVolumeClaimSpec,
 		})

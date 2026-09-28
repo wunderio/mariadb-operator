@@ -123,6 +123,9 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
+  inheritMetadata:
+    labels:
+      app.kubernetes.io/instance: mariadb-galera
   storage:
     size: 1Gi
     volumeClaimTemplate:
@@ -137,6 +140,17 @@ spec:
         requests:
           storage: 1Gi
 ```
+
+The `inheritMetadata` field is also inherited by the `PVC`s, the same way it is by the `Pods` and `Services`. The metadata defined in the `volumeClaimTemplate.metadata` field supersedes the `inheritMetadata` field, therefore the labels and annotations provided in the former will override the ones in the latter.
+
+> [!NOTE]
+> The `StatefulSet` `volumeClaimTemplates` are immutable, so the operator cannot change the metadata of `PVC`s that were already created. Newly created `PVC`s (for instance, when scaling out) will use the `volumeClaimTemplates` stored in the `StatefulSet`. If you need to relabel existing `PVC`s, you can do it manually:
+>
+> ```shell
+> kubectl label pvc storage-mariadb-galera-0 app.kubernetes.io/instance=mariadb-galera
+> ```
+>
+> Alternatively, the next `StatefulSet` recreation (for instance, a [storage resize](./storage.md)) will apply the new `volumeClaimTemplates` metadata, and on Kubernetes >= 1.27 the `StatefulSet` controller will propagate the new labels and annotations to the existing `PVC`s.
 
 ## Use cases
 

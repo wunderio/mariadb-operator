@@ -910,8 +910,6 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 			WithMetadata(mariadb.Spec.InheritMetadata).
 			WithMetadata(&extraMeta).
 			Build()
-	command := command.NewCommand([]string{"mariadbd"}, []string{"--log-error=/dev/stderr", "--wsrep-recover"})
-
 	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
 
 	volumes := []corev1.Volume{
@@ -940,8 +938,7 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 	opts := []mariadbPodOpt{
 		withMeta(mariadb.Spec.InheritMetadata),
 		withMeta(&extraMeta),
-		withCommand(command.Command),
-		withArgs(command.Args),
+		withArgs([]string{"mariadbd", "--log-error=/dev/stderr", "--wsrep-recover"}),
 		withRestartPolicy(corev1.RestartPolicyOnFailure),
 		withResources(jobResources(recoveryJob.Resources)),
 		withExtraVolumes(volumes),

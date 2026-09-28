@@ -3129,10 +3129,13 @@ func TestGaleraRecoveryJobCommand(t *testing.T) {
 	}
 
 	container := job.Spec.Template.Spec.Containers[0]
-	command := strings.Join(append(container.Command, container.Args...), " ")
-
-	if command != expected {
-		t.Errorf("expected galera recovery command to be %s, got: %s", expected, command)
+	// The recovery Job must not override the container Command so the image entrypoint
+	// is used, which drops root privileges to the mysql user before running mariadbd.
+	if len(container.Command) != 0 {
+		t.Errorf("expected empty Command (image entrypoint), got: %v", container.Command)
+	}
+	if got := strings.Join(container.Args, " "); got != expected {
+		t.Errorf("expected args to be %s, got: %s", expected, got)
 	}
 }
 

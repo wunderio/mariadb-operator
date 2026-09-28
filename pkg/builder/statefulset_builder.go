@@ -216,20 +216,16 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 	vctpl := mariadb.Spec.Storage.VolumeClaimTemplate
 
 	if !mariadb.IsEphemeralStorageEnabled() && vctpl != nil {
-		meta := ptr.Deref(vctpl.Metadata, mariadbv1alpha1.Metadata{})
-		labels := labels.NewLabelsBuilder().
-			WithLabels(meta.Labels).
-			WithPVCRole(StorageVolumeRole).
+		objMeta := metadata.NewMetadataBuilder(types.NamespacedName{Name: StorageVolume}).
+			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(vctpl.Metadata).
+			WithLabels(labels.NewLabelsBuilder().WithPVCRole(StorageVolumeRole).Build()).
 			Build()
 
 		pvcs = []corev1.PersistentVolumeClaim{
 			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        StorageVolume,
-					Labels:      labels,
-					Annotations: meta.Annotations,
-				},
-				Spec: vctpl.ToKubernetesType(),
+				ObjectMeta: objMeta,
+				Spec:       vctpl.ToKubernetesType(),
 			},
 		}
 	}
@@ -239,19 +235,15 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 	vctpl = galera.Config.VolumeClaimTemplate
 
 	if mariadb.IsGaleraEnabled() && !reuseStorageVolume && vctpl != nil {
-		meta := ptr.Deref(vctpl.Metadata, mariadbv1alpha1.Metadata{})
-		labels := labels.NewLabelsBuilder().
-			WithLabels(meta.Labels).
-			WithPVCRole(ConfigVolumeRole).
+		objMeta := metadata.NewMetadataBuilder(types.NamespacedName{Name: galeraresources.GaleraConfigVolume}).
+			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(vctpl.Metadata).
+			WithLabels(labels.NewLabelsBuilder().WithPVCRole(ConfigVolumeRole).Build()).
 			Build()
 
 		pvcs = append(pvcs, corev1.PersistentVolumeClaim{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        galeraresources.GaleraConfigVolume,
-				Labels:      labels,
-				Annotations: meta.Annotations,
-			},
-			Spec: vctpl.ToKubernetesType(),
+			ObjectMeta: objMeta,
+			Spec:       vctpl.ToKubernetesType(),
 		})
 	}
 	return pvcs
@@ -259,15 +251,15 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 
 func maxscaleVolumeClaimTemplates(maxscale *mariadbv1alpha1.MaxScale) []corev1.PersistentVolumeClaim {
 	vctpl := maxscale.Spec.Config.VolumeClaimTemplate
-	meta := ptr.Deref(vctpl.Metadata, mariadbv1alpha1.Metadata{})
+	objMeta := metadata.NewMetadataBuilder(types.NamespacedName{Name: StorageVolume}).
+		WithMetadata(maxscale.Spec.InheritMetadata).
+		WithMetadata(vctpl.Metadata).
+		Build()
+
 	pvcs := []corev1.PersistentVolumeClaim{
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        StorageVolume,
-				Labels:      meta.Labels,
-				Annotations: meta.Annotations,
-			},
-			Spec: vctpl.ToKubernetesType(),
+			ObjectMeta: objMeta,
+			Spec:       vctpl.ToKubernetesType(),
 		},
 	}
 	return pvcs
